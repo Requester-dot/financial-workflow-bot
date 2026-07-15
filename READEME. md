@@ -1,0 +1,59 @@
+# 💰 Financial Workflow Bot
+
+A simulated financial workflow management system with payment tracking, income management, and automated notifications.
+
+## ⚠️ IMPORTANT DISCLAIMER
+
+**This is a SIMULATED/DEMO application for educational and portfolio purposes ONLY.**
+
+- ❌ **NO real transactions** are processed
+- ❌ **NO real bank accounts** are connected
+- ❌ **NO real funds** are transferred
+- ❌ **NO actual payments** are received
+- 🔒 All data is stored **locally in your browser** only
+- 📱 This is a **frontend-only** application with no backend server
+
+This tool is designed to **demonstrate** how a financial workflow might look and function, but it operates entirely with simulated/placeholder data.
+
+---
+
+## ✨ Features
+
+### 1. **Conceptual Interface**
+- **Source Link** - Link to payment source (placeholder format)
+- **Income Source** - Type of income (Freelance, Salary, Investment, etc.)
+- **Amount Received** - Payment amount
+- **Date Received** - Transaction date
+- **Description** - Additional notes
+- **Running Total** - Cumulative income tracker
+
+### 2. **Simulated Workflow**
+- Add income sources with verification links (simulated)
+- Automatic transaction recording
+- Running total calculation
+- Transaction history with all details
+
+### 3. **Simulated Notifications**
+Three notification types are automatically triggered when you add income:
+- 💳 **Payment Notification** - Income received alert
+- 📧 **Email Confirmation** - Simulated email confirmation
+- 🏦 **Bank Confirmation** - Simulated bank verification
+
+### 4. **Dashboard Statistics**
+- Running total of all income
+- Transaction count
+- System status indicator
+
+---
+
+## 🚀 How to Use
+
+### **Access Online (GitHub Pages)**
+1. Visit: `https://Requester-dot.github.io/financial-workflow-bot`
+2. Use on any device with a web browser (mobile, tablet, desktop)
+
+### **Run Locally**
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/Requester-dot/financial-workflow-bot.git
+   cd financial-workflow-bot
