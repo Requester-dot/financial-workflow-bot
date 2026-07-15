@@ -1,0 +1,313 @@
+// Financial Workflow Bot - Main Script
+
+// Initialize data from localStorage
+let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+let notifications = JSON.parse(localStorage.getItem('notifications')) || [];
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+    renderTransactions();
+    updateDashboard();
+    renderNotifications();
+    setupEventListeners();
+    loadInitialNotification();
+});
+
+// Setup event listeners
+function setupEventListeners() {
+    document.getElementById('incomeForm').addEventListener('submit', handleFormSubmit);
+}
+
+// Handle form submission
+function handleFormSubmit(e) {
+    e.preventDefault();
+
+    const sourceLink = document.getElementById('sourceLink').value;
+    const incomeSource = document.getElementById('incomeSource').value;
+    const amountReceived = parseFloat(document.getElementById('amountReceived').value);
+    const dateReceived = document.getElementById('dateReceived').value;
+    const description = document.getElementById('description').value;
+
+    // Create transaction object
+    const transaction = {
+        id: Date.now(),
+        sourceLink,
+        incomeSource,
+        amountReceived,
+        dateReceived,
+        description,
+        timestamp: new Date().toISOString()
+    };
+
+    // Add to transactions array
+    transactions.push(transaction);
+
+    // Save to localStorage
+    localStorage.setItem('transactions', JSON.stringify(transactions));
+
+    // Create notifications
+    createTransactionNotifications(transaction);
+
+    // Update UI
+    updateDashboard();
+    renderTransactions();
+    renderNotifications();
+
+    // Reset form
+    document.getElementById('incomeForm').reset();
+
+    // Show success message
+    showToast(`✅ Income added successfully! $${amountReceived.toFixed(2)} received.`);
+}
+
+// Create notifications after transaction
+function createTransactionNotifications(transaction) {
+    const timestamp = new Date().toLocaleString();
+
+    // Payment notification
+    const paymentNotif = {
+        id: Date.now(),
+        type: 'success',
+        icon: '💳',
+        title: 'Payment Received',
+        message: `$${transaction.amountReceived.toFixed(2)} received from ${transaction.incomeSource}`,
+        details: `Source: ${transaction.sourceLink}`,
+        time: timestamp
+    };
+
+    // Email confirmation
+    const emailNotif = {
+        id: Date.now() + 1,
+        type: 'info',
+        icon: '📧',
+        title: 'Email Confirmation Sent',
+        message: `Confirmation email sent to your registered email address`,
+        details: `Transaction ID: TXN-${transaction.id}`,
+        time: timestamp
+    };
+
+    // Bank confirmation
+    const bankNotif = {
+        id: Date.now() + 2,
+        type: 'success',
+        icon: '🏦',
+        title: 'Bank Confirmation',
+        message: `Your bank has confirmed the incoming transfer`,
+        details: `Amount: $${transaction.amountReceived.toFixed(2)} | Date: ${transaction.dateReceived}`,
+        time: timestamp
+    };
+
+    // Add all notifications
+    notifications.unshift(paymentNotif, emailNotif, bankNotif);
+
+    // Keep only last 20 notifications
+    if (notifications.length > 20) {
+        notifications = notifications.slice(0, 20);
+    }
+
+    localStorage.setItem('notifications', JSON.stringify(notifications));
+}
+
+// Update dashboard stats
+function updateDashboard() {
+    const runningTotal = transactions.reduce((sum, t) => sum + t.amountReceived, 0);
+    const transactionCount = transactions.length;
+
+    document.getElementById('runningTotal').textContent = `$${runningTotal.toFixed(2)}`;
+    document.getElementById('transactionCount').textContent = transactionCount;
+    document.getElementById('statusIndicator').textContent = transactionCount > 0 ? '✅ Active' : 'Ready';
+}
+
+// Render transactions table
+function renderTransactions() {
+    const tbody = document.getElementById('transactionsBody');
+    tbody.innerHTML = '';
+
+    if (transactions.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px;">No transactions yet. Add one to get started!</td></tr>';
+        return;
+    }
+
+    let runningTotal = 0;
+
+    transactions.forEach((transaction, index) => {
+        runningTotal += transaction.amountReceived;
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td><a href="${transaction.sourceLink}" target="_blank" title="Visit source">${truncateUrl(transaction.sourceLink)}</a></td>
+            <td>${transaction.incomeSource}</td>
+            <td><strong>$${transaction.amountReceived.toFixed(2)}</strong></td>
+            <td>${formatDate(transaction.dateReceived)}</td>
+            <td><strong style="color: #28a745;">$${runningTotal.toFixed(2)}</strong></td>
+            <td>
+                <button class="btn btn-delete" onclick="deleteTransaction(${transaction.id})">Delete</button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+// Render notifications
+function renderNotifications() {
+    const container = document.getElementById('notificationsContainer');
+    container.innerHTML = '';
+
+    if (notifications.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #999; padding: 30px;">No notifications yet.</p>';
+        return;
+    }
+
+    notifications.slice(0, 10).forEach(notif => {
+        const notifElement = document.createElement('div');
+        notifElement.className = `notification ${notif.type}`;
+        notifElement.innerHTML = `
+            <div class="notification-icon">${notif.icon}</div>
+            <div class="notification-content">
+                <h4>${notif.title}</h4>
+                <p>${notif.message}</p>
+                <p><small>${notif.details}</small></p>
+                <p class="notification-time">${notif.time}</p>
+            </div>
+        `;
+        container.appendChild(notifElement);
+    });
+}
+
+// Delete transaction
+function deleteTransaction(id) {
+    if (confirm('Are you sure you want to delete this transaction?')) {
+        transactions = transactions.filter(t => t.id !== id);
+        localStorage.setItem('transactions', JSON.stringify(transactions));
+        updateDashboard();
+        renderTransactions();
+        showToast('❌ Transaction deleted');
+    }
+}
+
+// Show toast notification
+function showToast(message) {
+    const toast = document.getElementById('notificationToast');
+    toast.textContent = message;
+    toast.classList.add('show');
+
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3000);
+}
+
+// Export data as JSON
+function exportData() {
+    const data = {
+        transactions,
+        notifications,
+        exportDate: new Date().toISOString()
+    };
+
+    const dataStr = JSON.stringify(data, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `financial-workflow-${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+
+    showToast('📥 Data exported successfully');
+}
+
+// Clear all data
+function clearAllData() {
+    if (confirm('⚠️ This will delete ALL transactions and notifications. Are you sure?')) {
+        transactions = [];
+        notifications = [];
+        localStorage.clear();
+        updateDashboard();
+        renderTransactions();
+        renderNotifications();
+        showToast('🗑️ All data cleared');
+    }
+}
+
+// Load sample data
+function loadSampleData() {
+    transactions = [
+        {
+            id: 1,
+            sourceLink: 'https://example.com/payment/freelance-001',
+            incomeSource: 'Freelance Project - Web Development',
+            amountReceived: 2500,
+            dateReceived: new Date(Date.now() - 7*24*60*60*1000).toISOString().split('T')[0],
+            description: 'Completed website redesign project for ABC Company',
+            timestamp: new Date(Date.now() - 7*24*60*60*1000).toISOString()
+        },
+        {
+            id: 2,
+            sourceLink: 'https://example.com/payment/salary-001',
+            incomeSource: 'Monthly Salary',
+            amountReceived: 4500,
+            dateReceived: new Date(Date.now() - 5*24*60*60*1000).toISOString().split('T')[0],
+            description: 'Regular monthly salary payment',
+            timestamp: new Date(Date.now() - 5*24*60*60*1000).toISOString()
+        },
+        {
+            id: 3,
+            sourceLink: 'https://example.com/payment/investment-001',
+            incomeSource: 'Investment Dividend',
+            amountReceived: 850,
+            dateReceived: new Date(Date.now() - 3*24*60*60*1000).toISOString().split('T')[0],
+            description: 'Quarterly dividend from stock portfolio',
+            timestamp: new Date(Date.now() - 3*24*60*60*1000).toISOString()
+        },
+        {
+            id: 4,
+            sourceLink: 'https://example.com/payment/consultation-001',
+            incomeSource: 'Consultation Fee',
+            amountReceived: 1200,
+            dateReceived: new Date(Date.now() - 1*24*60*60*1000).toISOString().split('T')[0],
+            description: 'Technical consultation services provided',
+            timestamp: new Date(Date.now() - 1*24*60*60*1000).toISOString()
+        }
+    ];
+
+    localStorage.setItem('transactions', JSON.stringify(transactions));
+
+    // Create notifications for sample data
+    transactions.forEach(transaction => {
+        createTransactionNotifications(transaction);
+    });
+
+    updateDashboard();
+    renderTransactions();
+    renderNotifications();
+
+    showToast('📊 Sample data loaded successfully');
+}
+
+// Load initial welcome notification
+function loadInitialNotification() {
+    if (notifications.length === 0) {
+        const welcomeNotif = {
+            id: Date.now(),
+            type: 'info',
+            icon: '👋',
+            title: 'Welcome to Financial Workflow Bot',
+            message: 'This is a simulated financial tracking system for demonstration purposes',
+            details: '⚠️ All data is LOCAL and SIMULATED. No real transactions or banking connections.',
+            time: new Date().toLocaleString()
+        };
+
+        notifications.push(welcomeNotif);
+        localStorage.setItem('notifications', JSON.stringify(notifications));
+        renderNotifications();
+    }
+}
+
+// Utility functions
+function truncateUrl(url, length = 40) {
+    return url.length > length ? url.substring(0, length) + '...' : url;
+}
+
+function formatDate(dateString) {
+    const options = { year: 'numeric', month: 'short', day: 'numeric' };
+    return new Date(dateString).toLocaleDateString(undefined, options);
+}
